@@ -29,7 +29,7 @@ function handleLogin(req, res, body) {
 
 	var params = querystring.parse(body);
 	if(params.username == config.username && params.password == config.password) {
-		cookies.set('auth', config.username, {expires:new Date(new Date().getTime() + 1000*60*60*24*100)});
+		cookies.set('auth_' + config.application, config.username, {expires:new Date(new Date().getTime() + 1000*60*60*24*100)});
 		res.writeHead(302, {
 		  'Location': '/'
 		});
@@ -62,7 +62,7 @@ function handleOther(req, res, body) {
 
 function checkAuth(req, res) {
 	var cookies = new Cookies(req, res);
-	if(cookies.get('auth') == config.username) {
+	if(cookies.get('auth_' + config.application) == config.username) {
 		return true;
 	} else {
 		return false;

@@ -1,3 +1,4 @@
+application = <application-name>
 serverUrl = <url>
 username = <user>
 password = <password>

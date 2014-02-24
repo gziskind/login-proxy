@@ -70,10 +70,17 @@ function checkAuth(req, res) {
 }
 
 function parseConfig(filePath) {
-	if(fs.existsSync(filePath)) {
-		return ini.parse(fs.readFileSync(filePath, 'utf-8'));
+	if(process.argv.length > 2) {
+		filePath = process.argv[2];
+		if(fs.existsSync(filePath)) {
+			return ini.parse(fs.readFileSync(filePath, 'utf-8'));
+		} else {
+			console.info("File cannot be found");
+			process.exit();
+		}
+
 	} else {
-		console.info("Please create a config.ini file.");
+		console.info("Please specifiy a config ini file.");
 		process.exit();
 	}
 }

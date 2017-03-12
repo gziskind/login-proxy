@@ -29,12 +29,14 @@ function handleLogin(req, res, body) {
 
 	var params = querystring.parse(body);
 	if(params.username == config.username && params.password == config.password) {
+                console.info("Logging in as [" + params.username + "]");
 		cookies.set('auth_' + config.application, config.username, {expires:new Date(new Date().getTime() + 1000*60*60*24*100)});
 		res.writeHead(302, {
 		  'Location': '/'
 		});
 		res.end();
 	} else {
+                console.info("Login attempt from [" + params.username + "]");
 		res.write('Invalid Login.');
 		res.end();
 	}

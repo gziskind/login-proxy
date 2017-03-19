@@ -1,0 +1,23 @@
+{
+  "name": "login-proxy",
+  "version": "1.0.0",
+  "description": "A Login proxy for an HTTP server",
+  "main": "proxy-server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/gziskind/login-proxy.git"
+  },
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/gziskind/login-proxy/issues"
+  },
+  "homepage": "https://github.com/gziskind/login-proxy#readme",
+  "dependencies": {
+    "cookies": "^0.7.0",
+    "request": "^2.81.0"
+  }
+}

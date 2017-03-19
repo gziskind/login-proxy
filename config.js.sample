@@ -1,0 +1,9 @@
+var config = {
+  application:"<app-name>",
+  username: "<username>",
+  password: "<password>",
+  serverUrl: "<url>",
+  port: <port> 
+}
+
+module.exports = config;

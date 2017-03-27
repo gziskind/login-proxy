@@ -1,54 +1,26 @@
 var https = require('https');
+var express = require('express');
 var request = require('request');
 var fs = require('fs');
 var querystring = require('querystring');
 var Cookies = require('cookies');
+var bodyParser = require('body-parser');
+var url = require('url');
 
-var pages = {
-  login: fs.readFileSync('./public/login.html'),
-  fontawesome: fs.readFileSync('./public/fontawesome.css'),
-  reset: fs.readFileSync('./public/reset.css')
-};
+var app = express();
 
-var fonts = {
-  "webfont-ie.eot": fs.readFileSync('./public/fontawesome-webfont-ie.eot'),
-  "webfont.eot": fs.readFileSync('./public/fontawesome-webfont.eot'),
-  "webfont.svg": fs.readFileSync('./public/fontawesome-webfont.svg'),
-  "webfont.ttf": fs.readFileSync('./public/fontawesome-webfont.ttf'),
-  "webfont.woff": fs.readFileSync('./public/fontawesome-webfont.woff'),
-}
+app.use(express.static('public'))
+app.use(bodyParser.raw({
+  type: '*/*'
+}));
+// app.use(bodyParser.urlencoded({ extended: true }));
 
 var config = parseConfig();
 
-function handler(req, res) {
-  var body = "";
-  req.on('data', function (chunk) {
-    body += chunk;
-  });
-
-  req.on('end', function() {
-    var cssMatch = req.url.match( /\/(fontawesome|reset)[.]css/)
-    var fontMatch = req.url.match(/\/fontawesome-(.+)/)
-    if(cssMatch) {
-      res.writeHeader(200, {"Content-Type": "text/css"});  
-      res.write(pages[cssMatch[1]]);
-      res.end();
-    } else if(fontMatch) {
-      res.write(fonts[fontMatch[1]]);
-      res.end();
-    } else if(req.url == '/login') {
-      handleLogin(req, res, body);
-    } else {
-      handleOther(req, res, body);
-    }
-  });
-
-}
-
-function handleLogin(req, res, body) {
+app.post('/login', function(req, res) {
   var cookies = new Cookies(req, res, {secure:true, keys:["BLAH"]});
 
-  var params = querystring.parse(body);
+  var params = querystring.parse(req.body.toString());
   if(params.username == config.username && params.password == config.password) {
     console.info("Logging in as [" + params.username + "]");
     cookies.set('auth_' + config.application, config.username, {
@@ -61,41 +33,54 @@ function handleLogin(req, res, body) {
     });
     res.end();
   } else {
-    console.info("Login attempt from [" + params.username + "]");
+    console.info("Login attempt from [" + req.body.username + "]");
     res.write('Invalid Login.');
     res.end();
   }
-}
+});
 
-function handleOther(req, res, body) {
-  if(checkAuth(req, res)) {
-    req.headers['Authorization'] = createAuthorization();
-    delete req.headers.host
-
-    var params = {
-      uri: config.serverUrl + req.url,
-      method: req.method,
-      headers: req.headers,
-      body: body
-    }
-
-    var response = request(params);
-    response.pipe(res);
-  } else {
-    res.writeHeader(200, {"Content-Type": "text/html"});  
-    res.write(pages.login);
-    res.end();
-  }
-}
-
-function checkAuth(req, res) {
+app.use(function(req, res, next) {
   var cookies = new Cookies(req, res, {secure:true, keys:["BLAH"]});
   if(cookies.get('auth_' + config.application, {signed:true}) == config.username) {
-    return true;
+    next();
   } else {
-    return false;
+    res.redirect('/login.html');
   }
-}
+});
+
+app.all('/*', function(req, res) {
+  req.headers['Authorization'] = createAuthorization();
+
+  // Needed because passing in browser host to proxy breaks the proxy
+  if(req.method == 'GET') {
+    delete req.headers['host'] 
+  } 
+
+  var params = {
+    uri: config.serverUrl + req.url,
+    method: req.method,
+    headers: req.headers
+  }
+
+  if(req.body && Object.keys(req.body).length > 0) {
+    params.body = req.body;
+  }
+
+  res.oldSetHeader = res.setHeader;
+  res.setHeader = function(name, val) {
+    if(name == 'location') {
+      // Needed to rewrite location header to have https protocol
+      var location = url.parse(val);
+      location.protocol = "https:";
+      res.oldSetHeader(name, location.format());
+    } else {
+      res.oldSetHeader(name,val);
+    }
+  }
+
+  var response = request(params);
+  response.pipe(res);
+})
 
 function parseConfig() {
   if(process.argv.length > 2) {
@@ -121,4 +106,5 @@ var options = {
   cert: fs.readFileSync(config.cert)
 }
 
-https.createServer(options,handler).listen(config.port);
+https.createServer(options, app).listen(config.port);
+
